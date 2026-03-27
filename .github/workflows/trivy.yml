@@ -11,9 +11,9 @@ env:
 
 jobs:
   # ===============================
-  # JOB 1 - CI : BUILD + SCAN + PUSH
+  # JOB 1 - BUILD
   # ===============================
-  ci:
+  build:
     runs-on: ubuntu-latest
     env:
       DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -38,24 +38,33 @@ jobs:
       - name: Verify image
         run: docker image ls | grep $IMAGE_NAME
 
+      - name: Push Docker image
+        run: docker push $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+  # ===============================
+  # JOB 2 - SCAN TRIVY
+  # ===============================
+  scan-trivy:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
         with:
           image-ref: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: table
           severity: CRITICAL,HIGH
-          exit-code: '0'        # affiche sans bloquer
+          exit-code: '0'
           vuln-type: os,library
           ignore-unfixed: true
 
-      - name: Push Docker image
-        run: docker push $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
-
   # ===============================
-  # JOB 2 - CD : DEPLOY
+  # JOB 3 - DEPLOY
   # ===============================
   deploy:
-    needs: ci
+    needs: scan-trivy
     runs-on: ubuntu-latest
     env:
       DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}
