@@ -1,5 +1,5 @@
 name: "CI-CD Docker Pipeline"
-
+# kekkke
 on:
   push:
     branches:
@@ -74,3 +74,4 @@ jobs:
             -p 80:80 \
             --name ci-app \
             $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+            
